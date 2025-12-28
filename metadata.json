@@ -1,0 +1,7 @@
+{
+  "name": "Relatório de Execução de Serviço",
+  "description": "Um formulário para registrar a execução de serviços por mão de obra, salvar os dados em uma planilha Google e exportar como arquivo XLSX.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

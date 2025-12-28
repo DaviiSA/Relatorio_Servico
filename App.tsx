@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { LaborItemData, FormData, Collaborator } from './types';
-import { sendData } from './services/googleSheetsService';
+import { sendData } from './services/apiService';
 import { exportToXLSX } from './utils/xlsx';
 import { COLLABORATORS, WorkType, ActionType } from './constants';
 import { logoBase64 } from './assets/logo';

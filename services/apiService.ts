@@ -1,7 +1,13 @@
 
 import { FormData } from '../types';
 
-// Helper function to convert a File to a base64 string
+/**
+ * INSTRUÇÕES:
+ * 1. Siga o passo a passo para criar o Web App no Google Apps Script.
+ * 2. Cole a URL gerada na constante abaixo.
+ */
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyfve4viCJjZsl1iG8VZSZi1myUfcCXm23PzlLGTYJyVDNkLETL7196t-ohtIMrUccC/exec';
+
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -11,79 +17,46 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-
-/**
- * This function sends the form data to a Vercel Serverless Function.
- * You need to create a file at `/api/submit-report.ts` in your Vercel project.
- * An example of the serverless function code is provided below.
- */
 export const sendData = async (formData: FormData): Promise<void> => {
-  // 1. Convert all image files to base64 strings
-  const imagePromises = formData.images.map(fileToBase64);
-  const base64Images = await Promise.all(imagePromises);
-
-  // 2. Prepare the payload for the API
-  const payload = {
-    workOrderNumber: formData.workOrderNumber,
-    workType: formData.workType,
-    collaborators: formData.collaborators,
-    laborItems: formData.laborItems.map(item => ({
-      code: item.code,
-      quantity: item.quantity,
-      actionType: item.actionType,
-    })),
-    images: base64Images, // Array of base64 data URLs
-  };
-
-  // 3. Send the data to the Vercel serverless function endpoint
-  const response = await fetch('/api/submit-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  // 4. Handle the response
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: 'Ocorreu um erro desconhecido.' }));
-    throw new Error(errorData.message || `O servidor respondeu com o status: ${response.status}`);
-  }
-};
-
-/*
-// --- Example Vercel Serverless Function (`/api/submit-report.ts`) ---
-// This code would run on Vercel's backend, not in the browser.
-// You would need to set up a database (e.g., Vercel Postgres) to store the data.
-
-import { VercelRequest, VercelResponse } from '@vercel/node';
-// import { sql } from '@vercel/postgres'; // Example using Vercel Postgres
-
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse,
-) {
-  if (request.method !== 'POST') {
-    return response.status(405).json({ message: 'Method Not Allowed' });
+  // Added comment to fix unintentional comparison error.
+  // We only check if GOOGLE_SCRIPT_URL is present since it has already been configured.
+  if (!GOOGLE_SCRIPT_URL) {
+    throw new Error('Configuração pendente: Insira a URL do Google Apps Script no arquivo services/apiService.ts');
   }
 
   try {
-    const { workOrderNumber, workType, collaborators, laborItems, images } = request.body;
+    const imagePromises = formData.images.map(fileToBase64);
+    const base64Images = await Promise.all(imagePromises);
+
+    const payload = {
+      workOrderNumber: formData.workOrderNumber,
+      workType: formData.workType,
+      collaborators: formData.collaborators,
+      laborItems: formData.laborItems.map(item => ({
+        code: item.code,
+        quantity: item.quantity,
+        actionType: item.actionType,
+      })),
+      images: base64Images,
+    };
+
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Google Apps Script Web App exige no-cors para envios simples
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    // Como o modo 'no-cors' não permite ler o corpo da resposta por segurança,
+    // assumimos sucesso se a requisição não disparar um erro de rede.
+    // Em um cenário real com CORS habilitado via proxy ou servidor Vercel,
+    // poderíamos verificar response.ok.
     
-    // Here you would typically validate the incoming data
-    // and then insert it into your database.
-    // For example, with Vercel Postgres:
-    // await sql`
-    //   INSERT INTO service_reports (work_order_number, work_type, collaborators, labor_items, images)
-    //   VALUES (${workOrderNumber}, ${workType}, ${JSON.stringify(collaborators)}, ${JSON.stringify(laborItems)}, ${JSON.stringify(images)});
-    // `;
-
-    console.log('Received data:', { workOrderNumber, workType }); // Log for debugging
-
-    return response.status(200).json({ message: 'Report submitted successfully' });
+    return;
   } catch (error) {
-    console.error(error);
-    return response.status(500).json({ message: 'Failed to submit report' });
+    console.error('Erro no envio:', error);
+    throw new Error('Erro ao conectar com a planilha. Verifique sua conexão ou a URL do Script.');
   }
-}
-*/
+};

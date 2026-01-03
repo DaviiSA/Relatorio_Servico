@@ -4,7 +4,6 @@ import { LaborItemData, FormData, Collaborator } from './types';
 import { sendData } from './services/apiService';
 import { exportToXLSX } from './utils/xlsx';
 import { COLLABORATORS, WorkType, ActionType } from './constants';
-import { logoBase64 } from './assets/logo';
 
 const initialLaborItem: LaborItemData = {
   id: Date.now(),
@@ -59,7 +58,6 @@ const App: React.FC = () => {
 
   const handleRemoveImage = (indexToRemove: number) => {
     URL.revokeObjectURL(imagePreviews[indexToRemove]);
-
     setImages(prevImages => prevImages.filter((_, index) => index !== indexToRemove));
     setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
@@ -92,11 +90,9 @@ const App: React.FC = () => {
     imagePreviews.forEach(url => URL.revokeObjectURL(url));
     setImages([]);
     setImagePreviews([]);
-    setLaborItems([initialLaborItem]);
+    setLaborItems([{ ...initialLaborItem, id: Date.now() }]);
     const fileInput = document.getElementById('image-upload') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
   }, [imagePreviews]);
 
   const validateForm = (): boolean => {
@@ -117,9 +113,7 @@ const App: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-        return;
-    }
+    if (!validateForm()) return;
 
     const formData: FormData = {
       workOrderNumber,
@@ -164,24 +158,27 @@ const App: React.FC = () => {
     }
   };
 
+  const inputStyle = "w-full px-4 py-3 bg-[#3f3f3f] text-white border border-transparent rounded-lg focus:ring-2 focus:ring-primary outline-none transition duration-200 placeholder-gray-400";
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
       {notification && (
-        <div className={`fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white ${notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+        <div className={`fixed top-5 right-5 z-50 p-4 rounded-lg shadow-lg text-white transition-all transform duration-300 ${notification.type === 'success' ? 'bg-secondary' : 'bg-red-500'}`}>
           {notification.message}
         </div>
       )}
-      <div className="w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-hidden">
-        <header className="bg-primary p-4 flex items-center space-x-4">
-          <img src={logoBase64} alt="JXA Linha Viva Logo" className="h-16 w-auto" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
+      
+      <div className="w-full max-w-4xl bg-white rounded-xl shadow-xl overflow-hidden">
+        <header className="bg-primary p-6 flex justify-center items-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-wide text-center uppercase">
             Relatório de Execução de Serviço
           </h1>
         </header>
 
-        <main className="p-6 sm:p-8 space-y-8">
-          <div className="space-y-2">
-            <label htmlFor="workOrderNumber" className="block text-lg font-semibold text-dark">
+        <main className="p-6 sm:p-10 space-y-10">
+          {/* CAMPO NÚMERO DA OBRA */}
+          <div className="space-y-4">
+            <label htmlFor="workOrderNumber" className="block text-lg font-bold text-dark">
               Qual o número da Obra ou Ordem de Serviço?
             </label>
             <input
@@ -190,56 +187,60 @@ const App: React.FC = () => {
               value={workOrderNumber}
               onChange={(e) => setWorkOrderNumber(e.target.value)}
               placeholder="Ex: OS-12345"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-200"
+              className={inputStyle}
             />
           </div>
 
-          <div className={`transition-opacity duration-500 ${isFormUnlocked ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-            <div className="space-y-8">
-              <fieldset className="space-y-3">
-                <legend className="text-lg font-semibold text-dark">
+          <div className={`transition-all duration-500 ${isFormUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+            <div className="space-y-10">
+              
+              {/* TIPO DE OBRA */}
+              <fieldset className="space-y-4">
+                <legend className="text-lg font-bold text-dark">
                   Esta execução é de uma obra de contrato com a Energisa ou particular?
                 </legend>
-                <div className="flex flex-col sm:flex-row sm:space-x-6 space-y-2 sm:space-y-0">
+                <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-3 sm:space-y-0">
                   {(Object.values(WorkType)).map(value => (
-                    <label key={value} className="flex items-center space-x-2 cursor-pointer">
+                    <label key={value} className="flex items-center space-x-3 cursor-pointer group">
                       <input
                         type="radio"
                         name="workType"
                         value={value}
                         checked={workType === value}
                         onChange={(e) => setWorkType(e.target.value as WorkType)}
-                        className="h-5 w-5 text-primary focus:ring-primary"
-                        disabled={!isFormUnlocked}
+                        className="h-5 w-5 text-primary border-gray-300 focus:ring-primary"
                       />
-                      <span className="text-gray-700 text-base capitalize">{value === 'energisa' ? 'Contrato com a Energisa' : value}</span>
+                      <span className="text-gray-600 font-medium group-hover:text-primary transition-colors capitalize">
+                        {value === 'energisa' ? 'Contrato Com A Energisa' : 'Particular'}
+                      </span>
                     </label>
                   ))}
                 </div>
               </fieldset>
 
-              <fieldset className="space-y-3">
-                <legend className="text-lg font-semibold text-dark">
+              {/* COLABORADORES */}
+              <fieldset className="space-y-4">
+                <legend className="text-lg font-bold text-dark">
                   Dentre os colaboradores abaixo marque os que estão envolvidos com a atividade:
                 </legend>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {COLLABORATORS.map(name => (
-                    <label key={name} className="flex items-center space-x-2 cursor-pointer">
+                    <label key={name} className="flex items-center space-x-3 cursor-pointer group">
                       <input
                         type="checkbox"
                         checked={collaborators.includes(name)}
                         onChange={() => handleCollaboratorChange(name)}
-                        className="h-5 w-5 text-primary rounded focus:ring-primary"
-                        disabled={!isFormUnlocked}
+                        className="h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary"
                       />
-                      <span className="text-gray-700 text-base">{name}</span>
+                      <span className="text-gray-600 font-medium group-hover:text-primary transition-colors">{name}</span>
                     </label>
                   ))}
                 </div>
               </fieldset>
 
-              <div className="space-y-2">
-                <label htmlFor="image-upload" className="block text-lg font-semibold text-dark">
+              {/* IMAGENS */}
+              <div className="space-y-4">
+                <label htmlFor="image-upload" className="block text-lg font-bold text-dark">
                   Registre por favor imagem das principais mãos de obras da atividade:
                 </label>
                 <input
@@ -249,116 +250,102 @@ const App: React.FC = () => {
                   accept="image/*"
                   capture="environment"
                   onChange={handleImageChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-primary hover:file:bg-orange-100 cursor-pointer"
-                  disabled={!isFormUnlocked}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-orange-100 file:text-primary hover:file:bg-orange-200 cursor-pointer"
                 />
                  {imagePreviews.length > 0 && (
-                    <div className="mt-4">
-                        <h3 className="text-md font-semibold text-dark">Pré-visualização das Imagens:</h3>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 mt-2">
-                            {imagePreviews.map((previewUrl, index) => (
-                                <div key={index} className="relative group">
-                                    <img src={previewUrl} alt={`Pré-visualização ${index + 1}`} className="w-full h-24 object-cover rounded-lg shadow-md" />
-                                    <button
-                                        onClick={() => handleRemoveImage(index)}
-                                        className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-lg opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-                                        aria-label="Remover imagem"
-                                    >
-                                        &times;
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 mt-6">
+                        {imagePreviews.map((previewUrl, index) => (
+                            <div key={index} className="relative group rounded-lg overflow-hidden aspect-square shadow-md border">
+                                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                <button
+                                    onClick={() => handleRemoveImage(index)}
+                                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <span className="text-white font-bold text-xl">X</span>
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
               </div>
 
-              <div className="space-y-6">
-                 <h2 className="text-xl font-bold text-dark border-b-2 border-primary pb-2">Detalhes da Mão de Obra</h2>
-                {laborItems.map((item, index) => (
-                  <div key={item.id} className="p-4 border rounded-lg bg-gray-50 relative">
-                     {laborItems.length > 1 && (
+              {/* DETALHES MÃO DE OBRA */}
+              <div className="space-y-6 pt-4">
+                <h2 className="text-xl font-bold text-dark border-b-4 border-primary inline-block pb-1 uppercase tracking-tighter">Detalhes da Mão de Obra</h2>
+                {laborItems.map((item) => (
+                  <div key={item.id} className="p-6 border border-gray-100 rounded-xl bg-gray-50/50 shadow-sm relative space-y-6">
+                    {laborItems.length > 1 && (
                       <button
                         onClick={() => removeLaborItem(item.id)}
-                        className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                        className="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors"
                         aria-label="Remover item"
-                        disabled={!isFormUnlocked}
                       >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-2">
-                        <label htmlFor={`laborCode-${item.id}`} className="block text-base font-medium text-gray-700">
-                          Qual o código da mão de obra?
-                        </label>
+                        <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">Qual o código da mão de obra?</label>
                         <input
-                          id={`laborCode-${item.id}`}
                           type="text"
                           value={item.code}
                           onChange={(e) => handleLaborItemChange(item.id, 'code', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-primary"
-                          disabled={!isFormUnlocked}
+                          className={inputStyle}
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor={`laborQuantity-${item.id}`} className="block text-base font-medium text-gray-700">
-                          Qual a quantidade da mão de obra?
-                        </label>
+                        <label className="block text-sm font-bold text-gray-700 uppercase tracking-tight">Qual a quantidade da mão de obra?</label>
                         <input
-                          id={`laborQuantity-${item.id}`}
                           type="number"
                           min="1"
                           value={item.quantity}
                           onChange={(e) => handleLaborItemChange(item.id, 'quantity', parseInt(e.target.value, 10) || 1)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary focus:border-primary"
-                          disabled={!isFormUnlocked}
+                          className={inputStyle}
                         />
                       </div>
-                      <fieldset className="md:col-span-2 space-y-2">
-                        <legend className="text-base font-medium text-gray-700">Foi uma instalação ou remoção?</legend>
-                        <div className="flex space-x-4">
-                           {Object.values(ActionType).map(value => (
-                            <label key={value} className="flex items-center space-x-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name={`actionType-${item.id}`}
-                                value={value}
-                                checked={item.actionType === value}
-                                onChange={() => handleLaborItemChange(item.id, 'actionType', value)}
-                                className="h-4 w-4 text-primary focus:ring-primary"
-                                disabled={!isFormUnlocked}
-                              />
-                              <span className="text-gray-700 capitalize">{value}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </fieldset>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-sm font-bold text-gray-700 uppercase tracking-tight">Foi uma instalação ou remoção?</p>
+                      <div className="flex space-x-8">
+                         {Object.values(ActionType).map(value => (
+                          <label key={value} className="flex items-center space-x-3 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name={`actionType-${item.id}`}
+                              value={value}
+                              checked={item.actionType === value}
+                              onChange={() => handleLaborItemChange(item.id, 'actionType', value)}
+                              className="h-5 w-5 text-primary focus:ring-primary"
+                            />
+                            <span className="text-gray-600 font-medium group-hover:text-primary transition-colors capitalize">{value === 'instalacao' ? 'Instalacao' : 'Remocao'}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
+                
                 <button
                   onClick={addLaborItem}
-                  className="flex items-center space-x-2 px-4 py-2 text-primary border-2 border-primary rounded-lg hover:bg-orange-50 transition duration-200 disabled:opacity-50"
-                  disabled={!isFormUnlocked}
+                  className="w-full sm:w-auto flex items-center justify-center space-x-2 px-6 py-3 text-primary border-2 border-primary rounded-xl font-bold hover:bg-orange-50 transition duration-200"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" /></svg>
+                  <span className="text-xl">+</span>
                   <span>Adicionar mais códigos</span>
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t">
+              {/* BOTÕES FINAIS */}
+              <div className="flex flex-col sm:flex-row justify-end gap-4 pt-10 border-t border-gray-100">
                 <button
                   onClick={handleSaveXLSX}
-                  className="px-6 py-3 bg-secondary text-white font-bold rounded-lg shadow-md hover:bg-green-600 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!isFormUnlocked}
+                  className="px-8 py-4 bg-secondary text-white font-bold rounded-xl shadow-lg hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center space-x-2"
                 >
-                  Salvar Relatório em XLSX
+                  <span>Salvar Relatório em XLSX</span>
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-6 py-3 bg-primary text-white font-bold rounded-lg shadow-md hover:bg-orange-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!isFormUnlocked || isLoading}
+                  className={`px-8 py-4 font-bold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center ${isLoading ? 'bg-orange-300 cursor-not-allowed text-white' : 'bg-primary text-white hover:bg-orange-700'}`}
+                  disabled={isLoading}
                 >
                   {isLoading ? 'Enviando...' : 'Enviar Dados e Recomeçar'}
                 </button>
@@ -367,6 +354,9 @@ const App: React.FC = () => {
           </div>
         </main>
       </div>
+      <footer className="mt-8 text-gray-400 text-sm">
+        © {new Date().getFullYear()} JXA Linha Viva - Todos os direitos reservados.
+      </footer>
     </div>
   );
 };

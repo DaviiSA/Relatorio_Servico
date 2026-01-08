@@ -48,7 +48,8 @@ const App: React.FC = () => {
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-        const newFiles = Array.from(e.target.files);
+        // Fix: Explicitly cast Array.from result to File[] to avoid 'unknown' type error in URL.createObjectURL on line 54
+        const newFiles = Array.from(e.target.files) as File[];
         setImages(prevImages => [...prevImages, ...newFiles]);
 
         const newPreviews = newFiles.map(file => URL.createObjectURL(file));
